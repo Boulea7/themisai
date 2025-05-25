@@ -218,6 +218,40 @@ bun dev
 
 **🎯 现在Vercel可以正确检测到Next.js项目，Root Directory设置为根目录(.)即可！**
 
+### ✅ 最新完成的工作 (Netlify部署准备 - 解决子模块问题)
+
+1.  **✅ 修复Git子模块致命错误**：
+    *   彻底解决了"fatal: No url found for submodule path 'lexichat' in .gitmodules"错误
+    *   移除了有问题的Git子模块配置和缓存
+    *   清理了.gitmodules文件和.git/modules目录
+    *   项目现在是标准的Next.js项目结构，无子模块依赖
+
+2.  **✅ 创建完整的Netlify部署配置**：
+    *   创建了`netlify.toml`配置文件，设置构建和部署参数
+    *   创建了`netlify/functions/chat.js` Netlify Functions处理API请求
+    *   修改了`next.config.ts`支持静态导出到`out`目录
+    *   配置了安全头部和缓存策略
+
+3.  **✅ API架构适配Netlify**：
+    *   修改了`src/lib/api.ts`，支持开发/生产环境自动切换
+    *   开发环境使用Next.js API路由（`/api/chat`）
+    *   生产环境使用Netlify Functions（`/.netlify/functions/chat`）
+    *   保持了流式响应的用户体验（生产环境模拟流式效果）
+
+4.  **✅ 构建测试验证**：
+    *   静态导出构建成功（✓ Compiled successfully in 5.0s）
+    *   生成了优化的静态文件到`out`目录
+    *   所有页面和资源正确导出
+    *   TypeScript类型检查通过
+
+5.  **✅ 创建详细部署文档**：
+    *   创建了`NETLIFY_DEPLOYMENT.md`完整部署指南
+    *   包含两种部署方式：GitHub自动部署和CLI部署
+    *   详细的环境变量配置说明
+    *   常见问题解决方案和部署后验证清单
+
+**🚀 项目现已完全准备好部署到Netlify！Git子模块问题已解决，构建测试通过，所有配置文件就绪。**
+
 ### ✅ 之前完成的工作 (流式输出与高级功能)
 
 1.  **✅ 流式输出功能**：
