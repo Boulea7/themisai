@@ -52,11 +52,18 @@ export async function sendChatMessageStream(
     });
 
     if (!response.ok) {
-      if (response.status === 502) {
-        throw new Error('AI正在深度思考中，请稍后重试或尝试简化您的问题。');
-      }
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP ${response.status}: 请求失败`);
+      
+      // 处理不同的HTTP状态码
+      if (response.status === 408) {
+        throw new Error('请求超时，请尝试提出更简洁的问题，或稍后重试。');
+      } else if (response.status === 502) {
+        throw new Error('服务暂时不可用，这可能是因为问题过于复杂。请尝试：\n1. 简化您的问题\n2. 分步骤提问\n3. 稍后重试');
+      } else if (response.status === 503) {
+        throw new Error('AI服务暂时不可用，请稍后重试。');
+      } else {
+        throw new Error(errorData.error || `服务错误 (${response.status})，请稍后重试`);
+      }
     }
 
     // 在生产环境中（Netlify），使用非流式响应
