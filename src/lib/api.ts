@@ -42,13 +42,14 @@ export async function sendChatMessageStream(
     
     // 构建请求数据
     const requestData = {
-      messages: [...history, { role: 'user', content: message }],
-      role: roleId
+      message: message,
+      history: history,
+      roleId: roleId
     };
     
     // 强化验证数据
     if (!message || typeof message !== 'string' || !message.trim()) {
-      console.error('Message validation failed:', { message, type: typeof message });
+      console.error('Message validation failed:', { message, type: typeof message, length: message?.length });
       throw new Error('消息内容不能为空');
     }
     
@@ -56,6 +57,12 @@ export async function sendChatMessageStream(
     if (!Array.isArray(history)) {
       console.error('History validation failed:', { history, type: typeof history });
       throw new Error('聊天历史格式错误');
+    }
+    
+    // 验证roleId
+    if (!roleId || typeof roleId !== 'string') {
+      console.error('RoleId validation failed:', { roleId, type: typeof roleId });
+      throw new Error('角色ID不能为空');
     }
     
     // 在开发环境中添加调试日志

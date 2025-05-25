@@ -18,11 +18,32 @@ interface SiliconFlowStreamChunk {
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, history = [], roleId = 'general' } = await request.json();
+    const body = await request.json();
+    const { message, history = [], roleId = 'general' } = body;
 
-    if (!message || typeof message !== 'string') {
+    // 详细的输入验证
+    console.log('Received request body:', { message, history, roleId, bodyKeys: Object.keys(body) });
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      console.error('Message validation failed:', { message, type: typeof message, length: message?.length });
       return NextResponse.json(
         { error: '消息内容不能为空' },
+        { status: 400 }
+      );
+    }
+
+    if (!Array.isArray(history)) {
+      console.error('History validation failed:', { history, type: typeof history });
+      return NextResponse.json(
+        { error: '聊天历史格式错误' },
+        { status: 400 }
+      );
+    }
+
+    if (!roleId || typeof roleId !== 'string') {
+      console.error('RoleId validation failed:', { roleId, type: typeof roleId });
+      return NextResponse.json(
+        { error: '角色ID不能为空' },
         { status: 400 }
       );
     }

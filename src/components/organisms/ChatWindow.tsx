@@ -146,6 +146,18 @@ const ChatWindow: React.FC = () => {
       return;
     }
 
+    // 进一步验证数据类型和内容
+    if (typeof trimmedInput !== 'string') {
+      console.error('Input type validation failed:', { trimmedInput, type: typeof trimmedInput });
+      return;
+    }
+
+    // 验证角色是否存在
+    if (!selectedRole || !selectedRole.id) {
+      console.error('Role validation failed:', { selectedRole });
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: trimmedInput,
@@ -293,7 +305,8 @@ const ChatWindow: React.FC = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       // 添加防抖，确保不会重复触发
-      if (!isLoading && inputValue?.trim()) {
+      const trimmed = inputValue?.trim();
+      if (!isLoading && trimmed && trimmed.length > 0 && typeof trimmed === 'string') {
         handleSendMessage();
       }
     }
