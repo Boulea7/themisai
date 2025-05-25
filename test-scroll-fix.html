@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滚动修复测试</title>
+</head>
+<body>
+    <h1>滚动修复测试</h1>
+    <p>这个页面用于测试聊天窗口的滚动修复是否生效。</p>
+    
+    <h2>修复内容：</h2>
+    <ul>
+        <li>✅ 移除了角色切换时的自动页面滚动</li>
+        <li>✅ 移除了发送消息时的自动页面滚动</li>
+        <li>✅ 保留了聊天容器内部的滚动功能</li>
+        <li>✅ 在聊天框下方添加了简洁的免责声明</li>
+    </ul>
+    
+    <h2>测试步骤：</h2>
+    <ol>
+        <li>访问 <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a></li>
+        <li>滚动到聊天窗口区域</li>
+        <li>选择不同的专业顾问角色</li>
+        <li>发送一些测试消息</li>
+        <li>观察页面是否保持在当前位置，不会自动滚动到底部</li>
+        <li>确认聊天框下方显示简洁的免责声明</li>
+    </ol>
+    
+    <h2>预期结果：</h2>
+    <p>✅ 页面不应该自动滚动到底部<br>
+    ✅ 聊天容器内部应该正常滚动到新消息<br>
+    ✅ 聊天框下方应该显示："獬豸 Themis AI 可能会出错，请核实重要信息。回答仅供参考，不构成正式法律意见。"</p>
+</body>
+</html> 
