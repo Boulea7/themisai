@@ -1,6 +1,9 @@
 const https = require('https');
 
+// 配置函数超时时间为25秒（Netlify最大值）
 exports.handler = async (event, context) => {
+  // 设置函数超时
+  context.callbackWaitsForEmptyEventLoop = false;
   // 只允许POST请求
   if (event.httpMethod !== 'POST') {
     return {
@@ -52,16 +55,18 @@ exports.handler = async (event, context) => {
 
     const systemPrompt = rolePrompts[role] || rolePrompts.general;
 
-    // 构建请求数据
+    // 构建请求数据 - 优化参数以减少处理时间
     const requestData = {
       model: MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages
       ],
-      max_tokens: 8192,
+      max_tokens: 4096, // 减少最大token数以加快响应
       temperature: 0.7,
-      stream: false
+      stream: false,
+      // 禁用思考模式以加快响应速度
+      enable_thinking: false
     };
 
     // 发送请求到SiliconFlow API

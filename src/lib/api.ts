@@ -52,7 +52,10 @@ export async function sendChatMessageStream(
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      if (response.status === 502) {
+        throw new Error('AI正在深度思考中，请稍后重试或尝试简化您的问题。');
+      }
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || `HTTP ${response.status}: 请求失败`);
     }
 
