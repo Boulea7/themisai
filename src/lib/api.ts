@@ -35,15 +35,19 @@ export async function sendChatMessageStream(
   onComplete: () => void
 ): Promise<void> {
   try {
-    const response = await fetch('/api/chat', {
+    // 检测是否在Netlify环境中
+    const apiEndpoint = process.env.NODE_ENV === 'production' 
+      ? '/.netlify/functions/chat'
+      : '/api/chat';
+    
+    const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message,
-        history,
-        roleId
+        messages: [...history, { role: 'user', content: message }],
+        role: roleId
       }),
     });
 
@@ -52,6 +56,23 @@ export async function sendChatMessageStream(
       throw new Error(errorData.error || `HTTP ${response.status}: 请求失败`);
     }
 
+    // 在生产环境中（Netlify），使用非流式响应
+    if (process.env.NODE_ENV === 'production') {
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      
+      // 模拟流式输出效果
+      const words = content.split('');
+      for (let i = 0; i < words.length; i++) {
+        onChunk(words[i]);
+        // 添加小延迟以模拟流式效果
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      onComplete();
+      return;
+    }
+
+    // 开发环境中使用真正的流式响应
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
 
