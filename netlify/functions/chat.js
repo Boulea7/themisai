@@ -28,23 +28,70 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { messages, role } = JSON.parse(event.body);
-    console.log('Chat request received:', { role, messageCount: messages?.length });
+    // 解析请求体
+    let requestBody;
+    try {
+      requestBody = JSON.parse(event.body);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: '请求格式错误' })
+      };
+    }
+
+    const { messages, role } = requestBody;
+    
+    // 添加调试日志
+    console.log('Received request:', { 
+      messagesCount: messages?.length, 
+      role, 
+      lastMessage: messages?.[messages?.length - 1] 
+    });
+
+    // 验证输入数据
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      console.error('Invalid messages array:', messages);
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: '消息内容不能为空' })
+      };
+    }
+
+    // 检查最后一条消息是否有内容
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || !lastMessage.content || !lastMessage.content.trim()) {
+      console.error('Invalid last message:', lastMessage);
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: '消息内容不能为空' })
+      };
+    }
 
     // 环境变量
     const API_KEY = process.env.SILICONFLOW_API_KEY;
     const API_URL = process.env.SILICONFLOW_API_URL || 'https://api.siliconflow.cn/v1/chat/completions';
     const MODEL = process.env.SILICONFLOW_MODEL || 'Qwen/Qwen3-235B-A22B';
 
-    console.log('Environment check:', {
-      hasApiKey: !!API_KEY,
-      apiKeyLength: API_KEY?.length,
-      apiUrl: API_URL,
-      model: MODEL
-    });
-
     if (!API_KEY) {
-      console.error('API Key not configured');
       throw new Error('API Key not configured');
     }
 
@@ -68,31 +115,28 @@ exports.handler = async (event, context) => {
         { role: 'system', content: systemPrompt },
         ...messages
       ],
-      max_tokens: 2048, // 进一步减少token数以提高响应速度
+      max_tokens: 4096, // 减少最大token数以提高响应速度
       temperature: 0.7,
-      stream: false
+      stream: false,
+      // 添加超时控制
+      timeout: 8000 // 8秒超时，留2秒给Netlify处理
     };
 
-    // 发送请求到SiliconFlow API - 使用Promise.race实现超时
-    console.log('Sending request to SiliconFlow API...');
-    const startTime = Date.now();
+    // 发送请求到SiliconFlow API - 添加超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超时
     
-    const fetchPromise = fetch(API_URL, {
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestData)
+      body: JSON.stringify(requestData),
+      signal: controller.signal
     });
     
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout after 7 seconds')), 7000);
-    });
-    
-    const response = await Promise.race([fetchPromise, timeoutPromise]);
-    const responseTime = Date.now() - startTime;
-    console.log(`API response received in ${responseTime}ms, status: ${response.status}`);
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`API request failed: ${response.status}`);

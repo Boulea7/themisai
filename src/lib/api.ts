@@ -40,15 +40,28 @@ export async function sendChatMessageStream(
       ? '/.netlify/functions/chat'
       : '/api/chat';
     
+    // 构建请求数据
+    const requestData = {
+      messages: [...history, { role: 'user', content: message }],
+      role: roleId
+    };
+    
+    // 验证数据
+    if (!message || !message.trim()) {
+      throw new Error('消息内容不能为空');
+    }
+    
+    // 在开发环境中添加调试日志
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Sending request:', requestData);
+    }
+
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        messages: [...history, { role: 'user', content: message }],
-        role: roleId
-      }),
+      body: JSON.stringify(requestData),
     });
 
     if (!response.ok) {
