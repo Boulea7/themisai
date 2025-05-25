@@ -134,17 +134,27 @@ const ChatWindow: React.FC = () => {
   }, [messages, shouldAutoScroll, scrollToBottom]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    // 强化输入验证
+    const trimmedInput = inputValue?.trim();
+    if (!trimmedInput || trimmedInput.length === 0 || isLoading) {
+      console.log('Input validation failed:', { 
+        inputValue, 
+        trimmedInput, 
+        length: trimmedInput?.length, 
+        isLoading 
+      });
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputValue,
+      content: trimmedInput,
       sender: 'user',
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = inputValue;
+    const currentInput = trimmedInput;
     setInputValue('');
     setIsLoading(true);
     
@@ -175,11 +185,15 @@ const ChatWindow: React.FC = () => {
         return;
       }
 
-      // 构建聊天历史
-      const chatHistory: APIChatMessage[] = messages.map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      }));
+      // 构建聊天历史，过滤掉无效消息
+      const chatHistory: APIChatMessage[] = messages
+        .filter(msg => msg.content && msg.content.trim()) // 过滤空消息
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.content.trim()
+        }));
+      
+      console.log('Chat history:', { count: chatHistory.length, lastMessage: chatHistory[chatHistory.length - 1] });
 
       // 创建流式响应的消息
       const streamingMessageId = (Date.now() + 1).toString();
@@ -278,7 +292,10 @@ const ChatWindow: React.FC = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      // 添加防抖，确保不会重复触发
+      if (!isLoading && inputValue?.trim()) {
+        handleSendMessage();
+      }
     }
   };
 
@@ -533,7 +550,7 @@ const ChatWindow: React.FC = () => {
               </div>
               <Button
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading}
+                disabled={!inputValue?.trim() || isLoading}
                 variant="primary"
                 className="self-end"
               >

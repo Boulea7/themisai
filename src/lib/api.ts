@@ -46,9 +46,16 @@ export async function sendChatMessageStream(
       role: roleId
     };
     
-    // 验证数据
-    if (!message || !message.trim()) {
+    // 强化验证数据
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      console.error('Message validation failed:', { message, type: typeof message });
       throw new Error('消息内容不能为空');
+    }
+    
+    // 验证历史数据格式
+    if (!Array.isArray(history)) {
+      console.error('History validation failed:', { history, type: typeof history });
+      throw new Error('聊天历史格式错误');
     }
     
     // 在开发环境中添加调试日志
