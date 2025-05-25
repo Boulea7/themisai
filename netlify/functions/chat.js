@@ -46,18 +46,19 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { messages, role } = requestBody;
+    const { message, history = [], roleId = 'general' } = requestBody;
     
     // 添加调试日志
     console.log('Received request:', { 
-      messagesCount: messages?.length, 
-      role, 
-      lastMessage: messages?.[messages?.length - 1] 
+      message, 
+      historyCount: history?.length, 
+      roleId, 
+      messageType: typeof message 
     });
 
     // 验证输入数据
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      console.error('Invalid messages array:', messages);
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      console.error('Invalid message:', { message, type: typeof message, length: message?.length });
       return {
         statusCode: 400,
         headers: {
@@ -70,10 +71,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 检查最后一条消息是否有内容
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || !lastMessage.content || !lastMessage.content.trim()) {
-      console.error('Invalid last message:', lastMessage);
+    // 验证历史数据
+    if (!Array.isArray(history)) {
+      console.error('Invalid history array:', { history, type: typeof history });
       return {
         statusCode: 400,
         headers: {
@@ -82,7 +82,22 @@ exports.handler = async (event, context) => {
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ error: '消息内容不能为空' })
+        body: JSON.stringify({ error: '聊天历史格式错误' })
+      };
+    }
+
+    // 验证角色ID
+    if (!roleId || typeof roleId !== 'string') {
+      console.error('Invalid roleId:', { roleId, type: typeof roleId });
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: '角色ID不能为空' })
       };
     }
 
@@ -101,20 +116,24 @@ exports.handler = async (event, context) => {
       corporate: "你是獬豸 Themis AI企业法务专家。专注公司法、合同法要点，简洁回答，突出实务操作建议。",
       civil: "你是獬豸 Themis AI民事法专家。专注民事纠纷核心问题，简明扼要，突出关键法条和解决路径。",
       criminal: "你是獬豸 Themis AI刑事法专家。专注刑事案件要点，简洁分析，突出法律风险和应对策略。",
-      ip: "你是獬豸 Themis AI知识产权专家。专注IP核心问题，简明回答，突出保护策略和法律依据。",
+      intellectual: "你是獬豸 Themis AI知识产权专家。专注IP核心问题，简明回答，突出保护策略和法律依据。",
       labor: "你是獬豸 Themis AI劳动法专家。专注劳动争议要点，简洁分析，突出权益保护和解决方案。",
-      academic: "你是獬豸 Themis AI法学助手。简洁解答法学问题，突出核心概念和学习要点。"
+      student: "你是獬豸 Themis AI法学助手。简洁解答法学问题，突出核心概念和学习要点。"
     };
 
-    const systemPrompt = rolePrompts[role] || rolePrompts.general;
+    const systemPrompt = rolePrompts[roleId] || rolePrompts.general;
+
+    // 构建消息数组
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history,
+      { role: 'user', content: message }
+    ];
 
     // 构建请求数据 - 优化性能以避免超时
     const requestData = {
       model: MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
-      ],
+      messages: messages,
       max_tokens: 4096, // 减少最大token数以提高响应速度
       temperature: 0.7,
       stream: false,

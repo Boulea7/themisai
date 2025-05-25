@@ -226,6 +226,13 @@ bun dev
 
 **🎯 现在"消息内容不能为空"错误已彻底解决，獬豸 Themis AI 的聊天功能完全正常运行！**
 
+5.  **✅ 修复Netlify生产环境数据格式问题**：
+    *   发现Netlify Functions与本地API路由数据格式不一致
+    *   统一了生产环境和开发环境的数据格式：`{ message, history, roleId }`
+    *   更新了Netlify Functions的请求解析和验证逻辑
+    *   修复了角色ID映射问题（intellectual, student等）
+    *   确保生产环境和本地开发环境行为完全一致
+
 ### ✅ 最新完成的工作 (Netlify部署与错误修复 - 历史记录)
 
 1.  **✅ 成功部署到Netlify**：
