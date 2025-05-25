@@ -101,24 +101,25 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 环境变量
+    // 环境变量 - 在Netlify环境使用更快的模型
     const API_KEY = process.env.SILICONFLOW_API_KEY;
     const API_URL = process.env.SILICONFLOW_API_URL || 'https://api.siliconflow.cn/v1/chat/completions';
-    const MODEL = process.env.SILICONFLOW_MODEL || 'Qwen/Qwen3-235B-A22B';
+    // 在生产环境使用更快的模型以避免超时
+    const MODEL = process.env.SILICONFLOW_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
 
     if (!API_KEY) {
       throw new Error('API Key not configured');
     }
 
-    // 角色系统提示词 - 优化为简洁高效版本
+    // 角色系统提示词 - 极简版本，快速响应
     const rolePrompts = {
-      general: "你是獬豸 Themis AI法律助手。请简洁专业地回答法律问题，重点突出关键法条和实务要点。控制回答在500字以内。",
-      corporate: "你是獬豸 Themis AI企业法务专家。专注公司法、合同法要点，简洁回答，突出实务操作建议。",
-      civil: "你是獬豸 Themis AI民事法专家。专注民事纠纷核心问题，简明扼要，突出关键法条和解决路径。",
-      criminal: "你是獬豸 Themis AI刑事法专家。专注刑事案件要点，简洁分析，突出法律风险和应对策略。",
-      intellectual: "你是獬豸 Themis AI知识产权专家。专注IP核心问题，简明回答，突出保护策略和法律依据。",
-      labor: "你是獬豸 Themis AI劳动法专家。专注劳动争议要点，简洁分析，突出权益保护和解决方案。",
-      student: "你是獬豸 Themis AI法学助手。简洁解答法学问题，突出核心概念和学习要点。"
+      general: "你是獬豸 Themis AI法律助手。简洁回答法律问题，300字内。",
+      corporate: "你是獬豸 Themis AI企业法务专家。简答公司法、合同法问题。",
+      civil: "你是獬豸 Themis AI民事法专家。简答民事纠纷问题。",
+      criminal: "你是獬豸 Themis AI刑事法专家。简答刑事案件问题。",
+      intellectual: "你是獬豸 Themis AI知识产权专家。简答IP相关问题。",
+      labor: "你是獬豸 Themis AI劳动法专家。简答劳动争议问题。",
+      student: "你是獬豸 Themis AI法学助手。简答法学问题。"
     };
 
     const systemPrompt = rolePrompts[roleId] || rolePrompts.general;
@@ -134,16 +135,20 @@ exports.handler = async (event, context) => {
     const requestData = {
       model: MODEL,
       messages: messages,
-      max_tokens: 4096, // 减少最大token数以提高响应速度
+      max_tokens: 2048, // 进一步减少token数以提高响应速度
       temperature: 0.7,
-      stream: false,
-      // 添加超时控制
-      timeout: 8000 // 8秒超时，留2秒给Netlify处理
+      stream: false
     };
 
-    // 发送请求到SiliconFlow API - 添加超时控制
+    // 发送请求到SiliconFlow API - 设置较宽松的超时（9秒）
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 9000); // 9秒超时，给API更多时间
+    
+    console.log('Sending request to SiliconFlow API...', { 
+      model: MODEL, 
+      messageLength: message.length,
+      historyLength: history.length 
+    });
     
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -158,10 +163,13 @@ exports.handler = async (event, context) => {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error('SiliconFlow API Error:', response.status, errorText);
+      throw new Error(`API request failed: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('API response received successfully');
 
     return {
       statusCode: 200,
